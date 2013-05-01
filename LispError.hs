@@ -1,5 +1,21 @@
-module LispError (LispError, showError) where
+module LispError (
+	LispError(
+		NumArgs,
+		TypeMismatch,
+		Parser,
+		BadSpecialForm,
+		NotFunction,
+		UnboundVar,
+		Default
+	),
+	ThrowsError,
+	trapError,
+	extractValue,
+) where
+
 import LispVal
+
+import Control.Monad.Error
 import Text.ParserCombinators.Parsec
 
 data LispError = NumArgs Integer [LispVal]
@@ -9,6 +25,8 @@ data LispError = NumArgs Integer [LispVal]
 			   | NotFunction String String
 			   | UnboundVar String String
 			   | Default String
+
+type ThrowsError = Either LispError
 
 showError :: LispError -> String
 showError (NumArgs n vals) =
@@ -20,4 +38,13 @@ showError (BadSpecialForm message form) = message ++ ": " ++ show form
 showError (NotFunction message func) = message ++ ": " ++ show func
 showError (UnboundVar message varname) = message ++ ": " ++ varname
 
+trapError :: (Show e, MonadError e m) => m String -> m String
+trapError action = catchError action (return . show)
+
+extractValue :: ThrowsError a -> a
+extractValue (Right val) = val
+
 instance Show LispError where show = showError
+instance Error LispError where
+	noMsg = Default "An error has occured"
+	strMsg = Default
