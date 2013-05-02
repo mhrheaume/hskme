@@ -28,7 +28,10 @@ primitives =
 	 ("string<?", strBoolBinop (<)),
 	 ("string>?", strBoolBinop (>)),
 	 ("string<=?", strBoolBinop (<=)),
-	 ("string>=?", strBoolBinop (>=))]
+	 ("string>=?", strBoolBinop (>=)),
+	 ("car", car),
+	 ("cdr", cdr),
+	 ("cons", cons)]
 
 numericBinop :: (Integer -> Integer -> Integer) -> [LispVal] -> ThrowsError LispVal
 numericBinop op singleVal@[_] = throwError $ NumArgs 2 singleVal
@@ -60,6 +63,26 @@ unpackStr other = throwError $ TypeMismatch "string" other
 unpackBool :: LispVal -> ThrowsError Bool
 unpackBool (LispBool b) = return b
 unpackBool other = throwError $ TypeMismatch "boolean" other
+
+car :: [LispVal] -> ThrowsError LispVal
+car [LispList (x : xs)] = return x
+car [LispDottedList (x : xs) _] = return x
+car [other] = throwError $ TypeMismatch "pair" other
+car other = throwError $ NumArgs 1 other
+
+cdr :: [LispVal] -> ThrowsError LispVal
+cdr [LispList (x : xs)] = return $ LispList xs
+cdr [LispDottedList [_] x] = return x
+cdr [LispDottedList (_ : xs) x] = return $ LispDottedList xs x
+cdr [other] = throwError $ TypeMismatch "pair" other
+cdr other = throwError $ NumArgs 1 other
+
+cons :: [LispVal] -> ThrowsError LispVal
+cons [x, LispList []] = return $ LispList [x]
+cons [x, LispList xs] = return $ LispList $ x : xs
+cons [x, LispDottedList xs xend] = return $ LispDottedList (x : xs) xend
+cons [x1, x2] = return $ LispDottedList [x1] x2
+cons other = throwError $ NumArgs 2 other
 
 apply :: String -> [LispVal] -> ThrowsError LispVal
 apply func args = maybe
