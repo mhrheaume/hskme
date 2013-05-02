@@ -31,7 +31,9 @@ primitives =
 	 ("string>=?", strBoolBinop (>=)),
 	 ("car", car),
 	 ("cdr", cdr),
-	 ("cons", cons)]
+	 ("cons", cons),
+	 ("eq?", eqv),
+	 ("eqv?", eqv)]
 
 numericBinop :: (Integer -> Integer -> Integer) -> [LispVal] -> ThrowsError LispVal
 numericBinop op singleVal@[_] = throwError $ NumArgs 2 singleVal
@@ -83,6 +85,22 @@ cons [x, LispList xs] = return $ LispList $ x : xs
 cons [x, LispDottedList xs xend] = return $ LispDottedList (x : xs) xend
 cons [x1, x2] = return $ LispDottedList [x1] x2
 cons other = throwError $ NumArgs 2 other
+
+eqv :: [LispVal] -> ThrowsError LispVal
+eqv [(LispBool x1), (LispBool x2)] = return $ LispBool $ x1 == x2
+eqv [(LispNumber x1), (LispNumber x2)] = return $ LispBool $ x1 == x2
+eqv [(LispString x1), (LispString x2)] = return $ LispBool $ x1 == x2
+eqv [(LispAtom x1), (LispAtom x2)] = return $ LispBool $ x1 == x2
+eqv [(LispDottedList xs x), (LispDottedList ys y)] =
+	eqv [LispList $ xs ++ [x], LispList $ ys ++ [y]]
+eqv [(LispList x1), (LispList x2)] =
+	return $ LispBool $ (length x1 == length x2) && (all eqvPair $ zip x1 x2)
+	where
+		eqvPair (x1, x2) = case eqv [x1, x2] of
+			Left err -> False
+			Right (LispBool val) -> val
+eqv [_, _] = return $ LispBool False
+eqv other = throwError $ NumArgs 2 other
 
 apply :: String -> [LispVal] -> ThrowsError LispVal
 apply func args = maybe
