@@ -10,7 +10,7 @@ module LispError (
 	),
 	ThrowsError,
 	trapError,
-	extractValue,
+	extractValue
 ) where
 
 import LispVal

@@ -1,6 +1,6 @@
 module Main where
 
-import LispEval
+import Eval
 import LispError
 import LispVal
 import Parser

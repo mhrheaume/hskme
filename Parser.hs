@@ -1,4 +1,7 @@
-module Parser (parseExpr) where
+module Parser (
+	parseExpr
+) where
+
 import LispVal
 
 import Control.Monad

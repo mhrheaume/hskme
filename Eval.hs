@@ -1,9 +1,9 @@
-module LispEval (
+module Eval (
 	eval
 ) where
 
-import LispVal
 import LispError
+import LispVal
 
 import Control.Monad.Error
 
