@@ -72,5 +72,10 @@ eval val@(LispString _) = return val
 eval val@(LispNumber _) = return val
 eval val@(LispBool _) = return val
 eval (LispList [LispAtom "quote", val]) = return val
+eval (LispList [LispAtom "if", pred, conseq, alt]) = do
+	result <- eval pred
+	case result of
+		LispBool False -> eval alt
+		otherwise -> eval conseq
 eval (LispList (LispAtom func : args)) = mapM eval args >>= apply func
 eval badForm = throwError $ BadSpecialForm "Unrecognized special form" badForm
