@@ -116,7 +116,8 @@ eval (LispList [LispAtom "quote", val]) = return val
 eval (LispList [LispAtom "if", pred, conseq, alt]) = do
 	result <- eval pred
 	case result of
+		LispBool True -> eval conseq
 		LispBool False -> eval alt
-		otherwise -> eval conseq
+		otherwise -> throwError $ TypeMismatch "boolean" result
 eval (LispList (LispAtom func : args)) = mapM eval args >>= apply func
 eval badForm = throwError $ BadSpecialForm "Unrecognized special form" badForm
