@@ -108,6 +108,24 @@ apply func args = maybe
 	($ args)
 	(lookup func primitives)
 
+evalCond :: LispVal -> ThrowsError LispVal
+evalCond (LispList (x : xs)) = evalClause x
+	where
+		evalClause (LispList [LispAtom "else", conseq]) = eval conseq
+		evalClause (LispList [pred, conseq]) = do
+			result <- eval pred
+			case result of
+				LispBool True -> eval conseq
+				LispBool False -> evalCond $ LispList xs
+				otherwise -> throwError $ TypeMismatch "boolean" result
+		evalClause (LispList [pred]) = do
+			result <- eval pred
+			case result of
+				LispBool True -> return result
+				LispBool False -> evalCond $ LispList xs
+				otherwise -> throwError $ TypeMismatch "boolean" result
+		evalClause other = throwError $ Default "Bad conditional clause."
+
 eval :: LispVal -> ThrowsError LispVal
 eval val@(LispString _) = return val
 eval val@(LispNumber _) = return val
@@ -119,5 +137,6 @@ eval (LispList [LispAtom "if", pred, conseq, alt]) = do
 		LispBool True -> eval conseq
 		LispBool False -> eval alt
 		otherwise -> throwError $ TypeMismatch "boolean" result
+eval (LispList (LispAtom "cond" : tests)) = evalCond $ LispList tests
 eval (LispList (LispAtom func : args)) = mapM eval args >>= apply func
 eval badForm = throwError $ BadSpecialForm "Unrecognized special form" badForm
