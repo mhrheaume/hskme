@@ -108,23 +108,27 @@ apply func args = maybe
 	($ args)
 	(lookup func primitives)
 
+lastVal :: [LispVal] -> ThrowsError LispVal
+lastVal args = return $ last args
+
 evalCond :: LispVal -> ThrowsError LispVal
+-- This is unspecified: return false for now
+evalCond (LispList []) = return $ LispBool False
 evalCond (LispList (x : xs)) = evalClause x
 	where
-		evalClause (LispList [LispAtom "else", conseq]) = eval conseq
-		evalClause (LispList [pred, conseq]) = do
-			result <- eval pred
-			case result of
-				LispBool True -> eval conseq
-				LispBool False -> evalCond $ LispList xs
-				otherwise -> throwError $ TypeMismatch "boolean" result
 		evalClause (LispList [pred]) = do
 			result <- eval pred
 			case result of
 				LispBool True -> return result
 				LispBool False -> evalCond $ LispList xs
 				otherwise -> throwError $ TypeMismatch "boolean" result
-		evalClause other = throwError $ Default "Bad conditional clause."
+		evalClause (LispList (LispAtom "else" : rest)) = mapM eval rest >>= lastVal
+		evalClause (LispList (pred : rest)) = do
+			result <- eval pred
+			case result of
+				LispBool True -> mapM eval rest >>= lastVal
+				LispBool False -> evalCond $ LispList xs
+				otherwise -> throwError $ TypeMismatch "boolean" result
 
 eval :: LispVal -> ThrowsError LispVal
 eval val@(LispString _) = return val
