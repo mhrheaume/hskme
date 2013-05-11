@@ -129,6 +129,29 @@ evalCond (LispList (x : xs)) = evalClause x
 				LispBool True -> mapM eval rest >>= lastVal
 				LispBool False -> evalCond $ LispList xs
 				otherwise -> throwError $ TypeMismatch "boolean" result
+		evalClause other = throwError $ BadSpecialForm "malformed cond clause" other
+
+checkDatum :: LispVal -> LispVal -> ThrowsError LispVal
+checkDatum key (LispList []) = return $ LispBool False
+checkDatum key (LispList (x : xs)) = do
+	result <- eqv [key, x]
+	case result of
+		LispBool True -> return $ LispBool True
+		LispBool False -> checkDatum key $ LispList xs
+		otherwise -> throwError $ BadSpecialForm "bad datum" x
+
+evalCase :: LispVal -> LispVal -> ThrowsError LispVal
+-- This is unspcified: return false for now
+evalCase key (LispList []) = return $ LispBool False
+evalCase key (LispList (x : xs)) = evalClause x
+	where
+		evalClause (LispList (LispAtom "else" : rest)) = mapM eval rest >>= lastVal
+		evalClause (LispList (datum : rest)) = do
+			result <- checkDatum key datum
+			case result of
+				LispBool True -> mapM eval rest >>= lastVal
+				LispBool False -> evalCase key $ LispList xs
+				otherwise -> throwError $ BadSpecialForm "bad datum list" datum
 
 eval :: LispVal -> ThrowsError LispVal
 eval val@(LispString _) = return val
@@ -141,6 +164,7 @@ eval (LispList [LispAtom "if", pred, conseq, alt]) = do
 		LispBool True -> eval conseq
 		LispBool False -> eval alt
 		otherwise -> throwError $ TypeMismatch "boolean" result
-eval (LispList (LispAtom "cond" : tests)) = evalCond $ LispList tests
+eval (LispList (LispAtom "cond" : clauses)) = evalCond $ LispList clauses
+eval (LispList (LispAtom "case" : key : clauses)) = evalCase key $ LispList clauses
 eval (LispList (LispAtom func : args)) = mapM eval args >>= apply func
 eval badForm = throwError $ BadSpecialForm "Unrecognized special form" badForm
