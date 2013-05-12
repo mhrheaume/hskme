@@ -108,6 +108,14 @@ apply func args = maybe
 	($ args)
 	(lookup func primitives)
 
+evalIf :: LispVal -> LispVal -> LispVal -> ThrowsError LispVal
+evalIf pred conseq alt = do
+	result <- eval pred
+	case result of
+		LispBool True -> eval conseq
+		LispBool False -> eval alt
+		otherwise -> throwError $ TypeMismatch "boolean" result
+
 lastVal :: [LispVal] -> ThrowsError LispVal
 lastVal args = return $ last args
 
@@ -158,12 +166,7 @@ eval val@(LispString _) = return val
 eval val@(LispNumber _) = return val
 eval val@(LispBool _) = return val
 eval (LispList [LispAtom "quote", val]) = return val
-eval (LispList [LispAtom "if", pred, conseq, alt]) = do
-	result <- eval pred
-	case result of
-		LispBool True -> eval conseq
-		LispBool False -> eval alt
-		otherwise -> throwError $ TypeMismatch "boolean" result
+eval (LispList [LispAtom "if", pred, conseq, alt]) = evalIf pred conseq alt
 eval (LispList (LispAtom "cond" : clauses)) = evalCond $ LispList clauses
 eval (LispList (LispAtom "case" : key : clauses)) = evalCase key $ LispList clauses
 eval (LispList (LispAtom func : args)) = mapM eval args >>= apply func
