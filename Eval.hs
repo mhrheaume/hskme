@@ -150,15 +150,15 @@ checkDatum key (LispList (x : xs)) = do
 
 evalCase :: LispVal -> LispVal -> ThrowsError LispVal
 -- This is unspcified: return false for now
-evalCase key (LispList []) = return $ LispBool False
-evalCase key (LispList (x : xs)) = evalClause x
+evalCase (LispList []) key = return $ LispBool False
+evalCase (LispList (x : xs)) key = evalClause x
 	where
 		evalClause (LispList (LispAtom "else" : rest)) = mapM eval rest >>= lastVal
 		evalClause (LispList (datum : rest)) = do
 			result <- checkDatum key datum
 			case result of
 				LispBool True -> mapM eval rest >>= lastVal
-				LispBool False -> evalCase key $ LispList xs
+				LispBool False -> evalCase (LispList xs) key
 				otherwise -> throwError $ BadSpecialForm "bad datum list" datum
 
 eval :: LispVal -> ThrowsError LispVal
@@ -168,6 +168,6 @@ eval val@(LispBool _) = return val
 eval (LispList [LispAtom "quote", val]) = return val
 eval (LispList [LispAtom "if", pred, conseq, alt]) = evalIf pred conseq alt
 eval (LispList (LispAtom "cond" : clauses)) = evalCond $ LispList clauses
-eval (LispList (LispAtom "case" : key : clauses)) = evalCase key $ LispList clauses
+eval (LispList (LispAtom "case" : key : clauses)) = eval key >>= (evalCase $ LispList clauses)
 eval (LispList (LispAtom func : args)) = mapM eval args >>= apply func
 eval badForm = throwError $ BadSpecialForm "Unrecognized special form" badForm
