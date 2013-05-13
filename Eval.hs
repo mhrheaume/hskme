@@ -146,7 +146,6 @@ checkDatum key (LispList (x : xs)) = do
 	case result of
 		LispBool True -> return $ LispBool True
 		LispBool False -> checkDatum key $ LispList xs
-		otherwise -> throwError $ BadSpecialForm "bad datum" x
 
 evalCase :: LispVal -> LispVal -> ThrowsError LispVal
 -- This is unspcified: return false for now
@@ -159,7 +158,7 @@ evalCase (LispList (x : xs)) key = evalClause x
 			case result of
 				LispBool True -> mapM eval rest >>= lastVal
 				LispBool False -> evalCase (LispList xs) key
-				otherwise -> throwError $ BadSpecialForm "bad datum list" datum
+		evalClause other = throwError $ BadSpecialForm "malformed case clause" other
 
 eval :: LispVal -> ThrowsError LispVal
 eval val@(LispString _) = return val
