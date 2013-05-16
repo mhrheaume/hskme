@@ -2,6 +2,7 @@ module Eval (
 	eval
 ) where
 
+import Env
 import LispError
 import LispVal
 import Primitives
@@ -14,65 +15,74 @@ apply func args = maybe
 	($ args)
 	(lookup func primitives)
 
-evalIf :: LispVal -> LispVal -> LispVal -> ThrowsError LispVal
-evalIf pred conseq alt = do
-	result <- eval pred
+evalIf :: Env -> LispVal -> LispVal -> LispVal -> IOThrowsError LispVal
+evalIf env pred conseq alt = do
+	result <- eval env pred
 	case result of
-		LispBool True -> eval conseq
-		LispBool False -> eval alt
+		LispBool True -> eval env conseq
+		LispBool False -> eval env alt
 		otherwise -> throwError $ TypeMismatch "boolean" result
 
-lastVal :: [LispVal] -> ThrowsError LispVal
+lastVal :: [LispVal] -> IOThrowsError LispVal
 lastVal args = return $ last args
 
-evalCond :: LispVal -> ThrowsError LispVal
+evalCond :: Env -> LispVal -> IOThrowsError LispVal
 -- This is unspecified: return false for now
-evalCond (LispList []) = return $ LispBool False
-evalCond (LispList (x : xs)) = evalClause x
+evalCond env (LispList []) = return $ LispBool False
+evalCond env (LispList (x : xs)) = evalClause x
 	where
 		evalClause (LispList [pred]) = do
-			result <- eval pred
+			result <- eval env pred
 			case result of
 				LispBool True -> return result
-				LispBool False -> evalCond $ LispList xs
+				LispBool False -> evalCond env $ LispList xs
 				otherwise -> throwError $ TypeMismatch "boolean" result
-		evalClause (LispList (LispAtom "else" : rest)) = mapM eval rest >>= lastVal
+		evalClause (LispList (LispAtom "else" : rest)) =
+			mapM (eval env) rest >>= lastVal
 		evalClause (LispList (pred : rest)) = do
-			result <- eval pred
+			result <- eval env pred
 			case result of
-				LispBool True -> mapM eval rest >>= lastVal
-				LispBool False -> evalCond $ LispList xs
+				LispBool True -> mapM (eval env) rest >>= lastVal
+				LispBool False -> evalCond env $ LispList xs
 				otherwise -> throwError $ TypeMismatch "boolean" result
 		evalClause other = throwError $ BadSpecialForm "malformed cond clause" other
 
-checkDatum :: LispVal -> LispVal -> ThrowsError LispVal
+checkDatum :: LispVal -> LispVal -> IOThrowsError LispVal
 checkDatum key (LispList []) = return $ LispBool False
 checkDatum key (LispList (x : xs)) = do
-	result <- eqv [key, x]
+	result <- liftThrows $ eqv [key, x]
 	case result of
 		LispBool True -> return $ LispBool True
 		LispBool False -> checkDatum key $ LispList xs
 
-evalCase :: LispVal -> LispVal -> ThrowsError LispVal
+evalCase :: Env -> LispVal -> LispVal -> IOThrowsError LispVal
 -- This is unspcified: return false for now
-evalCase (LispList []) key = return $ LispBool False
-evalCase (LispList (x : xs)) key = evalClause x
+evalCase env (LispList []) key = return $ LispBool False
+evalCase env (LispList (x : xs)) key = evalClause x
 	where
-		evalClause (LispList (LispAtom "else" : rest)) = mapM eval rest >>= lastVal
+		evalClause (LispList (LispAtom "else" : rest)) =
+			mapM (eval env) rest >>= lastVal
 		evalClause (LispList (datum : rest)) = do
 			result <- checkDatum key datum
 			case result of
-				LispBool True -> mapM eval rest >>= lastVal
-				LispBool False -> evalCase (LispList xs) key
+				LispBool True -> mapM (eval env) rest >>= lastVal
+				LispBool False -> evalCase env (LispList xs) key
 		evalClause other = throwError $ BadSpecialForm "malformed case clause" other
 
-eval :: LispVal -> ThrowsError LispVal
-eval val@(LispString _) = return val
-eval val@(LispNumber _) = return val
-eval val@(LispBool _) = return val
-eval (LispList [LispAtom "quote", val]) = return val
-eval (LispList [LispAtom "if", pred, conseq, alt]) = evalIf pred conseq alt
-eval (LispList (LispAtom "cond" : clauses)) = evalCond $ LispList clauses
-eval (LispList (LispAtom "case" : key : clauses)) = eval key >>= (evalCase $ LispList clauses)
-eval (LispList (LispAtom func : args)) = mapM eval args >>= apply func
-eval badForm = throwError $ BadSpecialForm "Unrecognized special form" badForm
+eval :: Env -> LispVal -> IOThrowsError LispVal
+eval env val@(LispString _) = return val
+eval env val@(LispNumber _) = return val
+eval env val@(LispBool _) = return val
+eval env (LispAtom id) = getVar env id
+eval env (LispList [LispAtom "quote", val]) = return val
+eval env (LispList [LispAtom "set!", LispAtom var, form]) =
+	eval env form >>= setVar env var
+eval env (LispList [LispAtom "define", LispAtom var, form]) =
+	eval env form >>= defineVar env var
+eval env (LispList [LispAtom "if", pred, conseq, alt]) = evalIf env pred conseq alt
+eval env (LispList (LispAtom "cond" : clauses)) = evalCond env $ LispList clauses
+eval env (LispList (LispAtom "case" : key : clauses)) =
+	eval env key >>= (evalCase env $ LispList clauses)
+eval env (LispList (LispAtom func : args)) =
+	mapM (eval env) args >>= liftThrows . apply func
+eval env badForm = throwError $ BadSpecialForm "Unrecognized special form" badForm

@@ -9,8 +9,11 @@ module LispError (
 		Default
 	),
 	ThrowsError,
+	IOThrowsError,
 	trapError,
-	extractValue
+	extractValue,
+	liftThrows,
+	runIOThrows
 ) where
 
 import LispVal
@@ -27,6 +30,7 @@ data LispError = NumArgs Integer [LispVal]
 			   | Default String
 
 type ThrowsError = Either LispError
+type IOThrowsError = ErrorT LispError IO
 
 showError :: LispError -> String
 showError (NumArgs n vals) =
@@ -43,6 +47,13 @@ trapError action = catchError action (return . show)
 
 extractValue :: ThrowsError a -> a
 extractValue (Right val) = val
+
+liftThrows :: ThrowsError a -> IOThrowsError a
+liftThrows (Left err) = throwError err
+liftThrows (Right val) = return val
+
+runIOThrows :: IOThrowsError String -> IO String
+runIOThrows action = runErrorT (trapError action) >>= return . extractValue
 
 instance Show LispError where show = showError
 instance Error LispError where
