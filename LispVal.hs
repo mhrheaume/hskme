@@ -17,6 +17,13 @@ data LispVal = LispAtom String
 			 | LispNumber Integer
 			 | LispString String
 			 | LispBool Bool
+			 | PrimitiveFunc ([LispVal] -> ThrowsError LispVal)
+			 | Func
+				{ params :: [String]
+				, vararg :: (Maybe String)
+				, body :: [LispVal]
+				, closure :: Env
+				}
 
 showVal :: LispVal -> String
 showVal (LispString contents) = "\"" ++ contents ++ "\""
@@ -28,6 +35,12 @@ showVal (LispList contents) = "(" ++ unwordsList contents ++ ")"
 showVal (LispDottedList head tail) = "(" ++ h ++ " . " ++ t where
 	h = unwordsList head
 	t = showVal tail
+showVal (PrimitiveFunc _) = "<primitive>"
+showVal (Func {params = args, vararg = varargs, body = body, closure = env}) =
+	"(lambda (" ++ unwords (map show args) ++ vaStr ++ ") ...)" where
+		vaStr = case varargs of
+			Nothing -> ""
+			Just arg -> " . " ++ arg
 
 unwordsList :: [LispVal] -> String
 unwordsList = unwords . map showVal

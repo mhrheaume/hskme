@@ -9,11 +9,15 @@ import Primitives
 
 import Control.Monad.Error
 
-apply :: String -> [LispVal] -> ThrowsError LispVal
-apply func args = maybe
-	(throwError $ NotFunction "Unrecognized primitive function args" func)
-	($ args)
-	(lookup func primitives)
+apply :: LispVal -> [LispVal] -> IOThrowsError LispVal
+apply (PrimitiveFunc func) args = liftThrows $ func args
+apply (Func params vargs body closure) args =
+	if num params /= num args && vargs == Nothing
+		then throwError $ NumArgs (num params) args
+		else bindParams >>= bindVarArgs vargs >>= evalBody
+	where
+		num = toInteger . length
+		bindParams = liftIO $ bindVars 
 
 evalIf :: Env -> LispVal -> LispVal -> LispVal -> IOThrowsError LispVal
 evalIf env pred conseq alt = do
