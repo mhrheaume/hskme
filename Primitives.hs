@@ -3,8 +3,7 @@ module Primitives (
 	eqv
 ) where
 
-import LispError
-import LispVal
+import Lisp
 
 import Control.Monad.Error
 

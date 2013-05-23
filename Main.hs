@@ -1,9 +1,7 @@
 module Main where
 
-import Env
 import Eval
-import LispError
-import LispVal
+import Lisp
 import Parser
 
 import Control.Monad.Error
@@ -17,11 +15,11 @@ flushStr str = putStr str >> hFlush stdout
 readPrompt :: String -> IO String
 readPrompt prompt = flushStr prompt >> getLine
 
-evalString :: Env -> String -> IO String
+evalString :: LispEnv -> String -> IO String
 evalString env expr = runIOThrows $ liftM show $
 	(liftThrows $ readExpr expr) >>= eval env
 
-evalAndPrint :: Env -> String -> IO ()
+evalAndPrint :: LispEnv -> String -> IO ()
 evalAndPrint env expr = evalString env expr >>= putStrLn
 
 until_ :: Monad m => (a -> Bool) -> m a -> (a -> m ()) -> m ()
