@@ -9,6 +9,8 @@ module LispVal (
 		PrimitiveFunc,
 		Func
 	),
+	ThrowsLispError,
+	IOThrowsLispError,
 	makeFunc,
 	makeNormalFunc,
 	makeVargsFunc
@@ -24,13 +26,16 @@ data LispVal = LispAtom String
 			 | LispNumber Integer
 			 | LispString String
 			 | LispBool Bool
-			 | PrimitiveFunc ([LispVal] -> ThrowsError LispVal)
+			 | PrimitiveFunc ([LispVal] -> ThrowsLispError LispVal)
 			 | Func
 				{ params :: [String]
 				, vararg :: (Maybe String)
 				, body :: [LispVal]
 				, closure :: Environment LispVal
 				}
+
+type ThrowsLispError a = ThrowsError LispVal a
+type IOThrowsLispError a = IOThrowsError LispVal a
 
 showVal :: LispVal -> String
 showVal (LispString contents) = "\"" ++ contents ++ "\""
@@ -55,19 +60,18 @@ makeFunc :: (Maybe String)
 	-> (Environment LispVal)
 	-> [LispVal]
 	-> [LispVal]
-	-> IOThrowsError LispVal
+	-> IOThrowsLispError LispVal
 makeFunc vargs env params body = return $ Func (map showVal params) vargs body env
 
 makeNormalFunc :: (Environment LispVal)
 	-> [LispVal]
 	-> [LispVal]
-	-> IOThrowsError LispVal
+	-> IOThrowsLispError LispVal
 makeNormalFunc = makeFunc Nothing
 
 makeVargsFunc :: LispVal
 	-> (Environment LispVal)
 	-> [LispVal]
 	-> [LispVal]
-	-> IOThrowsError LispVal
+	-> IOThrowsLispError LispVal
 makeVargsFunc = makeFunc . Just . showVal
-

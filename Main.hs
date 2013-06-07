@@ -17,12 +17,6 @@ flushStr str = putStr str >> hFlush stdout
 readPrompt :: String -> IO String
 readPrompt prompt = flushStr prompt >> getLine
 
-extractValue :: Either (IError LispVal) a -> a
-extractValue (Right val) = val
-
-runIOThrows :: ErrorT (IError LispVal) IO String -> IO String
-runIOThrows action = runErrorT (trapError action) >>= return . extractValue
-
 evalString :: (Environment LispVal) -> String -> IO String
 evalString env expr = runIOThrows $ liftM show $
 	(liftThrows $ readExpr expr) >>= eval env
@@ -43,7 +37,7 @@ runOne expr = nullEnvironment >>= flip evalAndPrint expr
 runRepl :: IO ()
 runRepl = nullEnvironment >>= until_ (== "quit") (readPrompt "hskme>>> ") . evalAndPrint
 
-readExpr :: String -> ThrowsError LispVal
+readExpr :: String -> ThrowsLispError LispVal
 readExpr input = case parse parseExpr "lisp" input of
 	Left err -> throwError $ Parser err
 	Right val -> return val

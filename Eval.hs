@@ -9,7 +9,7 @@ import Primitives
 
 import Control.Monad.Error
 
-apply :: LispVal -> [LispVal] -> IOThrowsError LispVal
+apply :: LispVal -> [LispVal] -> IOThrowsLispError LispVal
 apply (PrimitiveFunc func) args = liftThrows $ func args
 apply (Func params vargs body closure) args =
 	if num params /= num args && vargs == Nothing
@@ -25,7 +25,11 @@ apply (Func params vargs body closure) args =
 		evalBody env = liftM last $ mapM (eval env) body
 
 
-evalIf :: (Environment LispVal) -> LispVal -> LispVal -> LispVal -> IOThrowsError LispVal
+evalIf :: (Environment LispVal)
+	-> LispVal
+	-> LispVal
+	-> LispVal
+	-> IOThrowsLispError LispVal
 evalIf env pred conseq alt = do
 	result <- eval env pred
 	case result of
@@ -33,10 +37,10 @@ evalIf env pred conseq alt = do
 		LispBool False -> eval env alt
 		otherwise -> throwError $ TypeMismatch "boolean" result
 
-lastVal :: [LispVal] -> IOThrowsError LispVal
+lastVal :: [LispVal] -> IOThrowsLispError LispVal
 lastVal args = return $ last args
 
-evalCond :: (Environment LispVal) -> LispVal -> IOThrowsError LispVal
+evalCond :: (Environment LispVal) -> LispVal -> IOThrowsLispError LispVal
 -- This is unspecified: return false for now
 evalCond env (LispList []) = return $ LispBool False
 evalCond env (LispList (x : xs)) = evalClause x
@@ -57,7 +61,7 @@ evalCond env (LispList (x : xs)) = evalClause x
 				otherwise -> throwError $ TypeMismatch "boolean" result
 		evalClause other = throwError $ BadSpecialForm "malformed cond clause" other
 
-checkDatum :: LispVal -> LispVal -> IOThrowsError LispVal
+checkDatum :: LispVal -> LispVal -> IOThrowsLispError LispVal
 checkDatum key (LispList []) = return $ LispBool False
 checkDatum key (LispList (x : xs)) = do
 	result <- liftThrows $ eqv [key, x]
@@ -65,7 +69,10 @@ checkDatum key (LispList (x : xs)) = do
 		LispBool True -> return $ LispBool True
 		LispBool False -> checkDatum key $ LispList xs
 
-evalCase :: (Environment LispVal) -> LispVal -> LispVal -> IOThrowsError LispVal
+evalCase :: (Environment LispVal)
+	-> LispVal
+	-> LispVal
+	-> IOThrowsLispError LispVal
 -- This is unspcified: return false for now
 evalCase env (LispList []) key = return $ LispBool False
 evalCase env (LispList (x : xs)) key = evalClause x
@@ -79,7 +86,7 @@ evalCase env (LispList (x : xs)) key = evalClause x
 				LispBool False -> evalCase env (LispList xs) key
 		evalClause other = throwError $ BadSpecialForm "malformed case clause" other
 
-eval :: ((Environment LispVal)) -> LispVal -> IOThrowsError LispVal
+eval :: ((Environment LispVal)) -> LispVal -> IOThrowsLispError LispVal
 eval env val@(LispString _) = return val
 eval env val@(LispNumber _) = return val
 eval env val@(LispBool _) = return val

@@ -25,7 +25,7 @@ isBound envRef var = readIORef envRef >>=
 	return . maybe False (const True) . lookup var
 
 -- Get the value of a variable
-getVar :: (Environment a) -> String -> IOThrowsError a
+getVar :: (Environment a) -> String -> IOThrowsError a a
 getVar envRef var = do
 	env <- liftIO $ readIORef envRef
 	maybe
@@ -34,7 +34,7 @@ getVar envRef var = do
 		(lookup var env)
 
 -- Set the value of a variable
-setVar :: (Environment a) -> String -> a -> IOThrowsError a
+setVar :: (Environment a) -> String -> a -> IOThrowsError a a
 setVar envRef var val = do
 	env <- liftIO $ readIORef envRef
 	maybe
@@ -44,7 +44,7 @@ setVar envRef var val = do
 	return val
 
 -- Define a new variable
-defineVar :: (Environment a) -> String -> a -> IOThrowsError a
+defineVar :: (Environment a) -> String -> a -> IOThrowsError a a
 defineVar envRef var val = do
 	alreadyDefined <- liftIO $ isBound envRef var
 	if alreadyDefined
@@ -57,9 +57,9 @@ defineVar envRef var val = do
 
 -- Bind multiple variables
 bindVars :: (Environment a) -> [(String, a)] -> IO (Environment a)
-bindVars envRef bindings = readIORef envRef >>= extendEnv bindings >>= newIORef
+bindVars envRef vars = readIORef envRef >>= extendEnv vars >>= newIORef
 	where
-		extendEnv bindings env = liftM (++ env) (mapM addBinding bindings)
+		extendEnv vars env = liftM (++ env) (mapM addBinding vars)
 		addBinding (var, val) = do
 			ref <- newIORef val
 			return (var, ref)
