@@ -2,7 +2,7 @@ module Parser (
 	parseExpr
 ) where
 
-import Lisp
+import LispVal
 
 import Control.Monad
 import Text.ParserCombinators.Parsec hiding (spaces)

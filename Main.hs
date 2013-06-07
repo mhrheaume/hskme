@@ -1,7 +1,9 @@
 module Main where
 
+import Environment
 import Eval
-import Lisp
+import IError
+import LispVal
 import Parser
 
 import Control.Monad.Error
@@ -15,11 +17,11 @@ flushStr str = putStr str >> hFlush stdout
 readPrompt :: String -> IO String
 readPrompt prompt = flushStr prompt >> getLine
 
-evalString :: LispEnv -> String -> IO String
+evalString :: (Environment LispVal) -> String -> IO String
 evalString env expr = runIOThrows $ liftM show $
 	(liftThrows $ readExpr expr) >>= eval env
 
-evalAndPrint :: LispEnv -> String -> IO ()
+evalAndPrint :: (Environment LispVal) -> String -> IO ()
 evalAndPrint env expr = evalString env expr >>= putStrLn
 
 until_ :: Monad m => (a -> Bool) -> m a -> (a -> m ()) -> m ()
@@ -30,10 +32,10 @@ until_ pred prompt action = do
 		else action result >> until_ pred prompt action
 
 runOne :: String -> IO ()
-runOne expr = nullEnv >>= flip evalAndPrint expr
+runOne expr = nullEnvironment >>= flip evalAndPrint expr
 
 runRepl :: IO ()
-runRepl = nullEnv >>= until_ (== "quit") (readPrompt "hskme>>> ") . evalAndPrint
+runRepl = nullEnvironment >>= until_ (== "quit") (readPrompt "hskme>>> ") . evalAndPrint
 
 readExpr :: String -> ThrowsError LispVal
 readExpr input = case parse parseExpr "lisp" input of

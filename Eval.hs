@@ -2,7 +2,9 @@ module Eval (
 	eval
 ) where
 
-import Lisp
+import Environment
+import IError
+import LispVal
 import Primitives
 
 import Control.Monad.Error
@@ -23,7 +25,7 @@ apply (Func params vargs body closure) args =
 		evalBody env = liftM last $ mapM (eval env) body
 
 
-evalIf :: LispEnv -> LispVal -> LispVal -> LispVal -> IOThrowsError LispVal
+evalIf :: (Environment LispVal) -> LispVal -> LispVal -> LispVal -> IOThrowsError LispVal
 evalIf env pred conseq alt = do
 	result <- eval env pred
 	case result of
@@ -34,7 +36,7 @@ evalIf env pred conseq alt = do
 lastVal :: [LispVal] -> IOThrowsError LispVal
 lastVal args = return $ last args
 
-evalCond :: LispEnv -> LispVal -> IOThrowsError LispVal
+evalCond :: (Environment LispVal) -> LispVal -> IOThrowsError LispVal
 -- This is unspecified: return false for now
 evalCond env (LispList []) = return $ LispBool False
 evalCond env (LispList (x : xs)) = evalClause x
@@ -63,7 +65,7 @@ checkDatum key (LispList (x : xs)) = do
 		LispBool True -> return $ LispBool True
 		LispBool False -> checkDatum key $ LispList xs
 
-evalCase :: LispEnv -> LispVal -> LispVal -> IOThrowsError LispVal
+evalCase :: (Environment LispVal) -> LispVal -> LispVal -> IOThrowsError LispVal
 -- This is unspcified: return false for now
 evalCase env (LispList []) key = return $ LispBool False
 evalCase env (LispList (x : xs)) key = evalClause x
@@ -77,7 +79,7 @@ evalCase env (LispList (x : xs)) key = evalClause x
 				LispBool False -> evalCase env (LispList xs) key
 		evalClause other = throwError $ BadSpecialForm "malformed case clause" other
 
-eval :: LispEnv -> LispVal -> IOThrowsError LispVal
+eval :: ((Environment LispVal)) -> LispVal -> IOThrowsError LispVal
 eval env val@(LispString _) = return val
 eval env val@(LispNumber _) = return val
 eval env val@(LispBool _) = return val
