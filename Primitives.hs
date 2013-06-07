@@ -40,7 +40,10 @@ numericBinop :: (Integer -> Integer -> Integer) -> [LispVal] -> ThrowsError Lisp
 numericBinop op singleVal@[_] = throwError $ NumArgs 2 singleVal
 numericBinop op params = mapM unpackNum params >>= return . LispNumber . foldl1 op
 
-boolBinop :: (LispVal -> ThrowsError a) -> (a -> a -> Bool) -> [LispVal] -> ThrowsError LispVal
+boolBinop :: (LispVal -> Either (IError LispVal) a)
+	-> (a -> a -> Bool)
+	-> [LispVal]
+	-> ThrowsError LispVal
 boolBinop unpacker op args =
 	if length args /= 2
 	then throwError $ NumArgs 2 args
@@ -53,17 +56,17 @@ numBoolBinop = boolBinop unpackNum
 strBoolBinop = boolBinop unpackStr
 boolBoolBinop = boolBinop unpackBool
 
-unpackNum :: LispVal -> ThrowsError Integer
+unpackNum :: LispVal -> Either (IError LispVal) Integer
 unpackNum (LispNumber n) = return n
 unpackNum notNum = throwError $ TypeMismatch "number" notNum
 
-unpackStr :: LispVal -> ThrowsError String
+unpackStr :: LispVal -> Either (IError LispVal) String
 unpackStr (LispString s) = return s
 unpackStr (LispNumber s) = return $ show s
 unpackStr (LispBool s) = return $ show s
 unpackStr other = throwError $ TypeMismatch "string" other
 
-unpackBool :: LispVal -> ThrowsError Bool
+unpackBool :: LispVal -> Either (IError LispVal) Bool
 unpackBool (LispBool b) = return b
 unpackBool other = throwError $ TypeMismatch "boolean" other
 

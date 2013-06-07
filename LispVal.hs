@@ -24,7 +24,7 @@ data LispVal = LispAtom String
 			 | LispNumber Integer
 			 | LispString String
 			 | LispBool Bool
-			 | PrimitiveFunc ([LispVal] -> IError LispVal)
+			 | PrimitiveFunc ([LispVal] -> ThrowsError LispVal)
 			 | Func
 				{ params :: [String]
 				, vararg :: (Maybe String)

@@ -11,9 +11,7 @@ module IError (
 	ThrowsError,
 	IOThrowsError,
 	trapError,
-	extractValue,
 	liftThrows,
-	runIOThrows
 ) where
 
 import Util
@@ -47,15 +45,9 @@ showError (UnboundVar message varname) = message ++ ": " ++ varname
 trapError :: (Show e, MonadError e m) => m String -> m String
 trapError action = catchError action (return . show)
 
-extractValue :: ThrowsError a -> a
-extractValue (Right val) = val
-
 liftThrows :: ThrowsError a -> IOThrowsError a
 liftThrows (Left err) = throwError err
 liftThrows (Right val) = return val
-
-runIOThrows :: IOThrowsError String -> IO String
-runIOThrows action = runErrorT (trapError action) >>= return . extractValue
 
 instance (Show a) => Show (IError a) where show = showError
 instance Error (IError a) where

@@ -17,6 +17,12 @@ flushStr str = putStr str >> hFlush stdout
 readPrompt :: String -> IO String
 readPrompt prompt = flushStr prompt >> getLine
 
+extractValue :: Either (IError LispVal) a -> a
+extractValue (Right val) = val
+
+runIOThrows :: ErrorT (IError LispVal) IO String -> IO String
+runIOThrows action = runErrorT (trapError action) >>= return . extractValue
+
 evalString :: (Environment LispVal) -> String -> IO String
 evalString env expr = runIOThrows $ liftM show $
 	(liftThrows $ readExpr expr) >>= eval env
