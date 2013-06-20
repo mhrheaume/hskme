@@ -1,6 +1,6 @@
 module Environment (
 	Environment,
-	nullEnvironment,
+	nullEnv,
 	setVar,
 	getVar,
 	defineVar,
@@ -16,8 +16,8 @@ import System.IO
 
 type Environment a = IORef [(String, IORef a)]
 
-nullEnvironment :: IO (Environment a)
-nullEnvironment = newIORef []
+nullEnv :: IO (Environment a)
+nullEnv = newIORef []
 
 -- Check if a variable has been bound
 isBound :: (Environment a) -> String -> IO Bool

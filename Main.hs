@@ -5,6 +5,7 @@ import Eval
 import IError
 import LispVal
 import Parser
+import Primitives
 
 import Control.Monad.Error
 import System.Environment
@@ -31,11 +32,16 @@ until_ pred prompt action = do
 		then return ()
 		else action result >> until_ pred prompt action
 
+primBindings :: IO (Environment LispVal)
+primBindings = nullEnv >>= (flip bindVars $ map makePrimFunc primitives) where
+	makePrimFunc (var, func) = (var, PrimitiveFunc func)
+
 runOne :: String -> IO ()
-runOne expr = nullEnvironment >>= flip evalAndPrint expr
+runOne expr = primBindings >>= flip evalAndPrint expr
 
 runRepl :: IO ()
-runRepl = nullEnvironment >>= until_ (== "quit") (readPrompt "hskme>>> ") . evalAndPrint
+runRepl = primBindings >>= inputEvalLoop where
+	inputEvalLoop = until_ (== "quit") (readPrompt "hskme>>> ") . evalAndPrint
 
 readExpr :: String -> ThrowsLispError LispVal
 readExpr input = case parse parseExpr "lisp" input of
