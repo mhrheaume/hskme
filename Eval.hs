@@ -4,14 +4,15 @@ module Eval (
 
 import Environment
 import IError
+import IOPrimitives
 import LispVal
 import Primitives
 
 import Control.Monad.Error
 
-apply :: LispVal -> [LispVal] -> IOThrowsLispError LispVal
-apply (PrimitiveFunc func) args = liftThrows $ func args
-apply (Func params vargs body closure) args =
+applyFunc :: LispVal -> [LispVal] -> IOThrowsLispError LispVal
+applyFunc (PrimitiveFunc func) args = liftThrows $ func args
+applyFunc (Func params vargs body closure) args =
 	if num params /= num args && vargs == Nothing
 		then throwError $ NumArgs (num params) args
 		else bindParams >>= bindVarArgs vargs >>= evalBody
@@ -23,7 +24,7 @@ apply (Func params vargs body closure) args =
 			Just argn -> liftIO $ bindVars env [(argn, LispList $ restArgs)]
 			Nothing -> return env
 		evalBody env = liftM last $ mapM (eval env) body
-
+applyFunc (IOFunc func) args = func args
 
 evalIf :: (Environment LispVal)
 	-> LispVal
@@ -117,11 +118,15 @@ eval env (LispList (LispAtom "lambda" : LispDottedList params vargs : body)) =
 eval env (LispList (LispAtom "lambda" : vargs@(LispAtom _) : body)) =
 	makeVargsFunc vargs env [] body
 
+-- "Special" load function
+eval env (LispList [LispAtom "load", String filename]) =
+	load filename >>= liftM last . mapM (eval env)
+
 -- Function calls
 eval env (LispList (func : args)) = do
 	lookup <- eval env func
 	argVals <- mapM (eval env) args
-	apply lookup argVals
+	applyFunc lookup argVals
 
 -- Error
 eval env badForm = throwError $ BadSpecialForm "Unrecognized special form" badForm

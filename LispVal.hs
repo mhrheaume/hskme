@@ -7,7 +7,9 @@ module LispVal (
 		LispString,
 		LispBool,
 		PrimitiveFunc,
-		Func
+		Func,
+		IOFunc,
+		Port
 	),
 	ThrowsLispError,
 	IOThrowsLispError,
@@ -19,6 +21,9 @@ module LispVal (
 import IError
 import Environment
 import Util
+
+import Control.Monad.Error
+import System.IO
 
 data LispVal = LispAtom String
 			 | LispList [LispVal]
@@ -33,6 +38,8 @@ data LispVal = LispAtom String
 				, body :: [LispVal]
 				, closure :: Environment LispVal
 				}
+			 | IOFunc ([LispVal] -> IOThrowsLispError LispVal)
+			 | Port Handle
 
 type ThrowsLispError a = ThrowsError LispVal a
 type IOThrowsLispError a = IOThrowsError LispVal a
@@ -53,6 +60,8 @@ showVal (Func {params = args, vararg = varargs, body = body, closure = env}) =
 		vaStr = case varargs of
 			Nothing -> ""
 			Just arg -> " . " ++ arg
+showVal (IOFunc _) = "<IO primitive>"
+showVal (Port _) = "<IO port>"
 
 instance Show LispVal where show = showVal
 
@@ -61,7 +70,8 @@ makeFunc :: (Maybe String)
 	-> [LispVal]
 	-> [LispVal]
 	-> IOThrowsLispError LispVal
-makeFunc vargs env params body = return $ Func (map showVal params) vargs body env
+makeFunc vargs env params body =
+	return $ Func (map showVal params) vargs body env
 
 makeNormalFunc :: (Environment LispVal)
 	-> [LispVal]

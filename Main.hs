@@ -3,6 +3,7 @@ module Main where
 import Environment
 import Eval
 import IError
+import IOPrimitives
 import LispVal
 import Parser
 import Primitives
@@ -33,15 +34,37 @@ until_ pred prompt action = do
 		else action result >> until_ pred prompt action
 
 primBindings :: IO (Environment LispVal)
-primBindings = nullEnv >>= (flip bindVars $ map makePrimFunc primitives) where
+primBindings = nullEnv >>= (flip bindVars $ allFuncs) where
+	allFuncs = primFuncs ++ ioFuncs
+	primFuncs = map (makeFunc PrimitiveFunc) primitives
+	ioFuncs = map (makeFunc IOFunc) ioPrimitives
+	makeFunc constr (var, func) = (var, constr func)
+
+map makePrimFunc primitives) where
 	makePrimFunc (var, func) = (var, PrimitiveFunc func)
 
-runOne :: String -> IO ()
-runOne expr = primBindings >>= flip evalAndPrint expr
+runOne :: [String] -> IO ()
+runOne args = do
+	env <- primBindings >>= flip bindVars argList
+	(runIOThrows $ liftM show $ runFile) >>= hPutStrLn stderr
+	where
+		argList = [("args", LispList $ map String $ drop 1 args)]
+		runFile = eval env (LispList [LispAtom "load", String (args !! 0)])
 
 runRepl :: IO ()
 runRepl = primBindings >>= inputEvalLoop where
 	inputEvalLoop = until_ (== "quit") (readPrompt "hskme>>> ") . evalAndPrint
+
+readOrThrow :: Parser a -> String -> ThrowsLispError a
+readOrThrow parser input = case parse parser "lisp" input of
+	Left err -> throwError $ Parser err
+	Right val -> return val
+
+readExpr :: String -> ThrowsLispError LispVal
+readExpr = readOrThrow parseExpr
+
+readExprList :: String -> ThrowsLispError LispVal
+readExprList = readOrThrow (endBy parseExpr spaces)
 
 readExpr :: String -> ThrowsLispError LispVal
 readExpr input = case parse parseExpr "lisp" input of
@@ -51,7 +74,4 @@ readExpr input = case parse parseExpr "lisp" input of
 main :: IO ()
 main = do
 	args <- getArgs
-	case length args of
-		0 -> runRepl
-		1 -> runOne $ args !! 0
-		otherwise -> putStrLn "Program takes only 0 or 1 argument"
+	if null args then runRepl else runOne $ args
