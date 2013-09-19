@@ -119,7 +119,7 @@ eval env (LispList (LispAtom "lambda" : vargs@(LispAtom _) : body)) =
 	makeVargsFunc vargs env [] body
 
 -- "Special" load function
-eval env (LispList [LispAtom "load", String filename]) =
+eval env (LispList [LispAtom "load", LispString filename]) =
 	load filename >>= liftM last . mapM (eval env)
 
 -- Function calls
