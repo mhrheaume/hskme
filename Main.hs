@@ -8,6 +8,7 @@ import IOPrimitives
 import LispVal
 import Parser
 import Primitives
+import StringPrimitives
 
 import Control.Monad.Error
 import System.Environment
@@ -37,7 +38,7 @@ until_ pred prompt action = do
 primBindings :: IO (Environment LispVal)
 primBindings = nullEnv >>= (flip bindVars $ allFuncs) where
 	allFuncs = primFuncs ++ ioFuncs
-	primFuncs = map (makeFunc PrimitiveFunc) primitives
+	primFuncs = map (makeFunc PrimitiveFunc) $ primitives ++ strPrimitives
 	ioFuncs = map (makeFunc IOFunc) ioPrimitives
 	makeFunc constr (var, func) = (var, constr func)
 	makePrimFunc (var, func) = (var, PrimitiveFunc func)

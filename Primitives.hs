@@ -1,6 +1,7 @@
 module Primitives (
 	primitives,
-	eqv
+	eqv,
+	boolBinop
 ) where
 
 import IError
@@ -25,11 +26,6 @@ primitives =
 	 ("<=", numBoolBinop (<=)),
 	 ("&&", boolBoolBinop (&&)),
 	 ("||", boolBoolBinop (||)),
-	 ("string=?", strBoolBinop (==)),
-	 ("string<?", strBoolBinop (<)),
-	 ("string>?", strBoolBinop (>)),
-	 ("string<=?", strBoolBinop (<=)),
-	 ("string>=?", strBoolBinop (>=)),
 	 ("car", car),
 	 ("cdr", cdr),
 	 ("cons", cons),
@@ -55,18 +51,11 @@ boolBinop unpacker op args =
 		return $ LispBool $ left `op` right
 
 numBoolBinop = boolBinop unpackNum
-strBoolBinop = boolBinop unpackStr
 boolBoolBinop = boolBinop unpackBool
 
 unpackNum :: LispVal -> ThrowsLispError Integer
 unpackNum (LispNumber n) = return n
 unpackNum notNum = throwError $ TypeMismatch "number" notNum
-
-unpackStr :: LispVal -> ThrowsLispError String
-unpackStr (LispString s) = return s
-unpackStr (LispNumber s) = return $ show s
-unpackStr (LispBool s) = return $ show s
-unpackStr other = throwError $ TypeMismatch "string" other
 
 unpackBool :: LispVal -> Either (IError LispVal) Bool
 unpackBool (LispBool b) = return b
