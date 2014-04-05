@@ -10,7 +10,9 @@ import Control.Monad.Error
 
 strPrimitives :: [(String, [LispVal] -> ThrowsLispError LispVal)]
 strPrimitives =
-	[("string=?", strBoolBinop (==)),
+	[("string?", isStr),
+	 ("string-length", strLength),
+	 ("string=?", strBoolBinop (==)),
 	 ("string<?", strBoolBinop (<)),
 	 ("string>?", strBoolBinop (>)),
 	 ("string<=?", strBoolBinop (<=)),
@@ -23,3 +25,13 @@ unpackStr (LispString s) = return s
 unpackStr (LispNumber s) = return $ show s
 unpackStr (LispBool s) = return $ show s
 unpackStr other = throwError $ TypeMismatch "string" other
+
+isStr :: [LispVal] -> ThrowsLispError LispVal
+isStr [LispString s] = return $ LispBool True
+isStr [_] = return $ LispBool False
+isStr args = throwError $ NumArgs 1 args
+
+strLength :: [LispVal] -> ThrowsLispError LispVal
+strLength [LispString s] = return . LispNumber . fromIntegral $ length s
+strLength [arg] = throwError $ TypeMismatch "string" arg
+strLength args = throwError $ NumArgs 1 args
