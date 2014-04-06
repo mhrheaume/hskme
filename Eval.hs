@@ -88,6 +88,7 @@ evalCase env (LispList (x : xs)) key = evalClause x
 		evalClause other = throwError $ BadSpecialForm "malformed case clause" other
 
 eval :: ((Environment LispVal)) -> LispVal -> IOThrowsLispError LispVal
+eval env val@(LispChar _) = return val
 eval env val@(LispString _) = return val
 eval env val@(LispNumber _) = return val
 eval env val@(LispBool _) = return val

@@ -4,6 +4,7 @@ module LispVal (
 		LispList,
 		LispDottedList,
 		LispNumber,
+		LispChar,
 		LispString,
 		LispBool,
 		PrimitiveFunc,
@@ -29,6 +30,7 @@ data LispVal = LispAtom String
 			 | LispList [LispVal]
 			 | LispDottedList [LispVal] LispVal
 			 | LispNumber Integer
+			 | LispChar Char
 			 | LispString String
 			 | LispBool Bool
 			 | PrimitiveFunc ([LispVal] -> ThrowsLispError LispVal)
@@ -45,6 +47,7 @@ type ThrowsLispError a = ThrowsError LispVal a
 type IOThrowsLispError a = IOThrowsError LispVal a
 
 showVal :: LispVal -> String
+showVal (LispChar char) = "#\\" ++ [char]
 showVal (LispString contents) = "\"" ++ contents ++ "\""
 showVal (LispAtom name) = name
 showVal (LispNumber contents) = show contents

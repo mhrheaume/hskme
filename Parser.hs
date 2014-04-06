@@ -11,17 +11,34 @@ spaces :: Parser ()
 spaces = skipMany1 space
 
 symbol :: Parser Char
-symbol = oneOf "!#$%&|*+-/:<=>?@^_~"
+symbol = oneOf "!$%&|*+-/:<=>?@^_~"
 
 parseAtom :: Parser LispVal
 parseAtom = do
 	first <- letter <|> symbol
 	rest <- many (letter <|> digit <|> symbol)
-	let atom = first:rest
-	return $ case atom of
-		"#t" -> LispBool True
-		"#f" -> LispBool False
-		_ -> LispAtom atom
+	return $ LispAtom (first:rest)
+
+parseChar :: Parser LispVal
+parseChar = do
+	char <-  parseSpace <|> parseNewline <|> parseAnyChar
+	return $ LispChar char
+	where
+		parseSpace = try(string "space") >>= (\_ -> return '_')
+		parseNewline = try(string "newline") >>= (\_ -> return '\n')
+		parseAnyChar = do
+			c <- anyChar
+			notFollowedBy $ noneOf " \n()\";"
+			return c
+
+parseBoolChar :: Parser LispVal
+parseBoolChar = do
+	char '#'
+	x <- oneOf "tf\\" <?> "bool or char"
+	case x of
+		't' -> return $ LispBool True
+		'f' -> return $ LispBool False
+		'\\' -> parseChar
 
 parseList :: Parser LispVal
 parseList = liftM LispList $ sepBy parseExpr spaces
@@ -33,10 +50,7 @@ parseDottedList = do
 	return $ LispDottedList head tail
 
 parseNumber :: Parser LispVal
--- parseNumber = liftM (LispNumber . read) $ many1 digit
-parseNumber = do
-	num <- many1 digit
-	return $ (LispNumber . read) num
+parseNumber = liftM (LispNumber . read) $ many1 digit
 
 parseString :: Parser LispVal
 parseString = do
@@ -52,7 +66,11 @@ parseQuoted = do
 	return $ LispList [LispAtom "quote", x]
 
 parseExpr :: Parser LispVal
-parseExpr = parseAtom <|> parseString <|> parseNumber <|> parseQuoted <|> do
+parseExpr = parseBoolChar <|>
+	parseAtom <|>
+	parseString <|>
+	parseNumber <|>
+	parseQuoted <|> do
 	char '('
 	x <- try parseList <|> parseDottedList
 	char ')'
