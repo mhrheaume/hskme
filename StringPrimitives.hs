@@ -39,7 +39,7 @@ charToInt args = throwError $ NumArgs 1 args
 
 intToChar :: [LispVal] -> ThrowsLispError LispVal
 intToChar [LispNumber n]
-	| n < 128 = return . LispChar . chr $ fromIntegral n
+	| n < 256 = return . LispChar . chr $ fromIntegral n
 	| otherwise = throwError $ InvalidArgument 1 "integer out of range"
 intToChar [arg] = throwError $ TypeMismatch "number" arg
 intToChar args = throwError $ NumArgs 1 args
@@ -48,6 +48,7 @@ strPrimitives :: [(String, [LispVal] -> ThrowsLispError LispVal)]
 strPrimitives =
 	[("string?", isStr),
 	 ("string-length", strLength),
+	 ("string-ref", strRef),
 	 ("string=?", strBoolBinop (==)),
 	 ("string<?", strBoolBinop (<)),
 	 ("string>?", strBoolBinop (>)),
@@ -63,6 +64,14 @@ strLength :: [LispVal] -> ThrowsLispError LispVal
 strLength [LispString s] = return . LispNumber . fromIntegral $ length s
 strLength [arg] = throwError $ TypeMismatch "string" arg
 strLength args = throwError $ NumArgs 1 args
+
+strRef :: [LispVal] -> ThrowsLispError LispVal
+strRef [LispString s, LispNumber n]
+	| 0 <= n && n < fromIntegral (length s) = return . LispChar $ s !! fromIntegral n
+	| otherwise = throwError $ InvalidArgument 2 "index out of range"
+strRef [LispString s, arg] = throwError $ TypeMismatch "number" arg
+strRef [arg, _] = throwError $ TypeMismatch "string" arg
+strRef args = throwError $ NumArgs 2 args
 
 strBoolBinop = boolBinop unpackStr
 
