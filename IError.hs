@@ -6,6 +6,7 @@ module IError (
 		BadSpecialForm,
 		NotFunction,
 		UnboundVar,
+		InvalidArgument,
 		Default
 	),
 	ThrowsError,
@@ -27,6 +28,7 @@ data IError a = NumArgs Integer [a]
 			  | BadSpecialForm String a
 			  | NotFunction String String
 			  | UnboundVar String String
+			  | InvalidArgument Integer String
 			  | Default String
 
 type ThrowsError a b = Either (IError a) b
@@ -41,6 +43,7 @@ showError (Parser parseErr) = "Parse error at " ++ show parseErr
 showError (BadSpecialForm message form) = message ++ ": " ++ show form
 showError (NotFunction message func) = message ++ ": " ++ show func
 showError (UnboundVar message varname) = message ++ ": " ++ varname
+showError (InvalidArgument n message) = "Invalid argument " ++ show n ++ ": " ++ message
 
 trapError :: (Show e, MonadError e m) => m String -> m String
 trapError action = catchError action (return . show)

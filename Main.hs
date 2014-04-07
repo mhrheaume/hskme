@@ -38,7 +38,7 @@ until_ pred prompt action = do
 primBindings :: IO (Environment LispVal)
 primBindings = nullEnv >>= (flip bindVars $ allFuncs) where
 	allFuncs = primFuncs ++ ioFuncs
-	primFuncs = map (makeFunc PrimitiveFunc) $ primitives ++ strPrimitives
+	primFuncs = map (makeFunc PrimitiveFunc) $ primitives ++ charPrimitives ++ strPrimitives
 	ioFuncs = map (makeFunc IOFunc) ioPrimitives
 	makeFunc constr (var, func) = (var, constr func)
 	makePrimFunc (var, func) = (var, PrimitiveFunc func)
