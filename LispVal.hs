@@ -31,7 +31,7 @@ data LispVal = LispAtom String
 			 | LispDottedList [LispVal] LispVal
 			 | LispNumber Integer
 			 | LispChar Char
-			 | LispString String
+			 | LispString String Bool
 			 | LispBool Bool
 			 | PrimitiveFunc ([LispVal] -> ThrowsLispError LispVal)
 			 | Func
@@ -48,7 +48,7 @@ type IOThrowsLispError a = IOThrowsError LispVal a
 
 showVal :: LispVal -> String
 showVal (LispChar char) = "#\\" ++ [char]
-showVal (LispString contents) = "\"" ++ contents ++ "\""
+showVal (LispString contents _) = "\"" ++ contents ++ "\""
 showVal (LispAtom name) = name
 showVal (LispNumber contents) = show contents
 showVal (LispBool True) = "#t"

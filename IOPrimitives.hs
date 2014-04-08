@@ -29,7 +29,7 @@ applyProc [func, LispList args] = apply func args
 applyProc (func : args) = apply func args
 
 makePort :: IOMode -> [LispVal] -> IOThrowsLispError LispVal
-makePort mode [LispString filename] =
+makePort mode [LispString filename _] =
 	liftM Port $ liftIO $ openFile filename mode
 
 closePort :: [LispVal] -> IOThrowsLispError LispVal
@@ -46,11 +46,11 @@ writeProc [obj, Port port] =
 	liftIO $ hPrint port obj >> (return $ LispBool True)
 
 readContents :: [LispVal] -> IOThrowsLispError LispVal
-readContents [LispString filename] =
-	liftM LispString $ liftIO $ readFile filename
+readContents [LispString filename _] =
+	liftM (flip LispString False) $ liftIO $ readFile filename
 
 load :: String -> IOThrowsLispError [LispVal]
 load filename = (liftIO $ readFile filename) >>= liftThrows . readExprList
 
 readAll :: [LispVal] -> IOThrowsLispError LispVal
-readAll [LispString filename] = liftM LispList $ load filename
+readAll [LispString filename _] = liftM LispList $ load filename

@@ -89,7 +89,7 @@ evalCase env (LispList (x : xs)) key = evalClause x
 
 eval :: ((Environment LispVal)) -> LispVal -> IOThrowsLispError LispVal
 eval env val@(LispChar _) = return val
-eval env val@(LispString _) = return val
+eval env val@(LispString _ _) = return val
 eval env val@(LispNumber _) = return val
 eval env val@(LispBool _) = return val
 eval env (LispAtom id) = getVar env id
@@ -120,7 +120,7 @@ eval env (LispList (LispAtom "lambda" : vargs@(LispAtom _) : body)) =
 	makeVargsFunc vargs env [] body
 
 -- "Special" load function
-eval env (LispList [LispAtom "load", LispString filename]) =
+eval env (LispList [LispAtom "load", LispString filename _]) =
 	load filename >>= liftM last . mapM (eval env)
 
 -- Function calls

@@ -48,8 +48,8 @@ runOne args = do
 	env <- primBindings >>= flip bindVars argList
 	(runIOThrows $ liftM show $ eval env loader) >>= hPutStrLn stderr
 	where
-		argList = [("args", LispList $ map LispString $ drop 1 args)]
-		loader = LispList [LispAtom "load", LispString (args !! 0)]
+		argList = [("args", LispList $ map (flip LispString False) (drop 1 args))]
+		loader = LispList [LispAtom "load", LispString (args !! 0) False]
 
 runRepl :: IO ()
 runRepl = primBindings >>= inputEvalLoop where

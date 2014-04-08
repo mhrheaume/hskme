@@ -84,7 +84,7 @@ cons other = throwError $ NumArgs 2 other
 eqv :: [LispVal] -> ThrowsLispError LispVal
 eqv [(LispBool x1), (LispBool x2)] = return $ LispBool $ x1 == x2
 eqv [(LispNumber x1), (LispNumber x2)] = return $ LispBool $ x1 == x2
-eqv [(LispString x1), (LispString x2)] = return $ LispBool $ x1 == x2
+eqv [(LispString x1 _), (LispString x2 _)] = return $ LispBool $ x1 == x2
 eqv [(LispAtom x1), (LispAtom x2)] = return $ LispBool $ x1 == x2
 eqv [(LispDottedList xs x), (LispDottedList ys y)] =
 	eqv [LispList $ xs ++ [x], LispList $ ys ++ [y]]

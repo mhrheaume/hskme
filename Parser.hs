@@ -57,7 +57,7 @@ parseString = do
 	char '"'
 	x <- many (noneOf "\"")
 	char '"'
-	return $ LispString x
+	return $ LispString x False
 
 parseQuoted :: Parser LispVal
 parseQuoted = do
